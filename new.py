@@ -57,11 +57,12 @@ class Group(Box):
                     break
             if not inserted:
                 lines.append(Line(word))
-        self.updateLine(lines)
+        # self.updateLine(lines)
         return lines
 
     def sortWords(self):
         self.words = sorted(self.words, key=lambda k: (k.stPoint[0]))
+
     def updateLine(self, lines):
         for line in lines:
             line.enPoint[1] += line.h * 0.2
@@ -145,15 +146,15 @@ class Line(Box):
         self.epH = self.h * self.H_NOUN
         self.text += ' ... ' + word.text
 
-    def getRect(self) -> List:
-        x = self.stPoint[0]
-        y = int(self.stPoint[1] - (self.epY/2 
-                                    if(self.stPoint[1] - self.epY/2 >= 0) 
-                                    else 0))
-        endX = self.w
-        endY = self.h + int(self.epY/1.5)
+    # def getRect(self) -> List:
+    #     x = self.stPoint[0]
+    #     y = int(self.stPoint[1] - (self.epY/2 
+    #                                 if(self.stPoint[1] - self.epY/2 >= 0) 
+    #                                 else 0))
+    #     endX = self.w
+    #     endY = self.h + int(self.epY/1.5)
 
-        return [x, y, endX, endY]
+    #     return [x, y, endX, endY]
 
 class Paragraph:
     def __init__(self, line:Line) -> None:
@@ -243,6 +244,12 @@ def main(imagePath, savePath):
     imgData = pytesseract.image_to_data(img, lang='eng', output_type=Output.DICT)
     cImgData = getCImgData(img, savePath)
     words = getWords(imgData, cImgData, img)
+    # for word in words:
+    #     cv2.putText(img, word.text, word.stPoint, 1, 1, (0, 255, 0))
+    #     cv2.rectangle(img, word.stPoint, word.enPoint, (40, 40, 100), 1)
+     
+    # cv2.imwrite(savePath, img)
+    # return 0
     groups = getGroups(img)
     # for group in groups:
     #     x, y = group.stPoint
@@ -252,24 +259,20 @@ def main(imagePath, savePath):
     #     print(text)
     # return 0
     # print(len(lines))
-    # for word in words:
-    #     cv2.putText(img, word.text, word.stPoint, 1, 1, (0, 255, 0))
-    #     cv2.rectangle(img, word.stPoint, word.enPoint, (40, 40, 100), 1)
-     
-    # cv2.imwrite(savePath, img)
-    # return 0
+
 
     insertWordTGroup(words, groups)
     lines = getLines(groups)
 
     outputImg = Image.open(imagePath).convert("RGB")
     for line in lines:
-        draw(outputImg, line)
-    outputImg.save(savePath)
-    return 0
+        if line.text.isupper():
+            line.text =  line.text.lower()
+
 
     paragraphs = getParagraphs(lines)
 
+   
     with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
         futureDraw = {executor.submit(transText,  id, paragraphs[id].getText()): id for id in range(len(paragraphs))}
         for future in concurrent.futures.as_completed(futureDraw):
@@ -303,11 +306,14 @@ def getWords(imgData, cImgData, img):
         x, y = imgData['left'][i], imgData['top'][i]
         w, h = imgData['width'][i], imgData['height'][i]
         text = imgData['text'][i]
+        text = ''.join(e for e in text if e.isalnum())
+
         conf = int(imgData['conf'][i])
         if (int(imgData['conf'][i]) >= 50
             and not imgData['text'][i].isspace()
             and w < img.shape[1]
             and h < img.shape[0]
+            and len(text) > 0
         ):
             nWords.append(Word([x, y, w, h], 0, text, conf))
 
@@ -373,11 +379,17 @@ def getContrastColor(rbg):
     return [255-rbg[0], 255-rbg[1], 255-rbg[2]]
 
 def getContrastImg(img):
-    contrastImg = img.copy()
+
+    contrastImg =255 - img.copy()
+    return contrastImg
+    
+
+def gcontrastImg(contrastImg):
+    l = len(contrastImg[0])
     for y in range(len(contrastImg)):
-        for x in range(len(contrastImg[y])):
+        for x in range(l):
             contrastImg[y][x] = getContrastColor(contrastImg[y][x])
-    return contrastImg    
+    return contrastImg   
 
 
 def getGroups(img):
@@ -512,7 +524,6 @@ def transText(id, text) -> None:
             textLines[i] = textLines[i][1:]
     return id, textLines
 
-# main('images/16.png', 'output/t.jpg')
 main('images/1.png', 'output/rect_1.jpg')
 main('images/2.png', 'output/rect_2.png')
 main('images/3.png', 'output/rect_3.png')
@@ -532,3 +543,12 @@ main('images/15.png', 'output/rect_15.png')
 main('images/16.png', 'output/rect_16.png')
 main('images/17.png', 'output/rect_17.png')
 main('images/18.png', 'output/rect_18.png')
+# tuan anh 
+# minh chien
+# anh duc 
+# duc hai 
+# khuong 
+# kien 
+# quoc nam 
+# van tin 
+# anh tuan 
